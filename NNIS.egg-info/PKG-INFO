@@ -1,0 +1,8 @@
+Metadata-Version: 2.1
+Name: NNIS
+Version: 0.1.0
+Requires-Dist: numpy
+Requires-Dist: matplotlib
+Requires-Dist: pandas
+Requires-Dist: opencv-python
+Requires-Dist: tifffile
