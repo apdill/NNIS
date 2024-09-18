@@ -32,7 +32,7 @@ def main():
 
     # Create and generate the network
     network = Network(network_width, network_height, num_neurons, neuron_params, 'nn0')
-    network._seed_neurons()
+    network.seed_neurons()
     network.grow_network()
 
     # Draw the network

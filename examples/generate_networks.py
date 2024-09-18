@@ -5,10 +5,10 @@ from NNIS.data_processing import batch_generate_networks
 
 def main():
     # Parameters
-    num_networks = 100
+    num_networks = 1
     network_width = 2048
     network_height = 2048
-    num_neurons_per_network = 20  # Or provide a list for varying neurons per network
+    num_neurons_per_network = 100  # Or provide a list for varying neurons per network
 
     # Neuron-specific parameters with Gaussian distribution
     neuron_params = {
@@ -33,7 +33,8 @@ def main():
         num_neurons_per_network=num_neurons_per_network,
         neuron_params=neuron_params,
         output_dir=r"C:\Users\absolute-zero\Desktop\NNIS\examples\example_networks",
-        network_prefix='nn_20neurons'
+        network_prefix='example_net_100neurons_'
+
     )
 
 if __name__ == "__main__":

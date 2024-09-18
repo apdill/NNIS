@@ -5,7 +5,44 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from .network import Network
-from .utils.file_io import save_masks, save_dataframe
+from .utils.file_io import save_masks, save_dataset
+
+
+def generate_network(network_id, output_base_dir, neuron_params, network_params):
+    """
+    Generates a network with the given ID and saves outputs to the specified directory structure.
+
+    Args:
+        network_id (str): Unique identifier for the network.
+        output_base_dir (str): Base directory for outputs.
+        neuron_params (dict): Parameters for neuron creation.
+        network_params (dict): Parameters for network creation (e.g., width, height, num_neurons).
+    """
+    network_width = network_params.get('width', 2048)
+    network_height = network_params.get('height', 2048)
+    num_neurons = network_params.get('num_neurons', 60)
+
+    # Create and generate the network
+    network = Network(network_width, network_height, num_neurons, neuron_params, network_id)
+    network.seed_neurons()
+    network.grow_network()
+
+    # Generate the binary mask
+    network_mask = network.generate_binary_mask()
+
+    network_ds = network.create_dataset()
+    
+    # Define output directories
+    images_dir = os.path.join(output_base_dir, 'images')
+    masks_dir = os.path.join(output_base_dir, 'masks')
+    dataframes_dir = os.path.join(output_base_dir, 'dataframes')
+    
+    # Save the Dataset using the updated function
+    save_dataset(network_ds, dataframes_dir=dataframes_dir)
+    
+    # Save masks using the updated function
+    save_masks(network_ds, images_dir=images_dir, masks_dir=masks_dir)
+
 
 def batch_generate_networks(
     num_networks,
@@ -13,66 +50,51 @@ def batch_generate_networks(
     network_height,
     num_neurons_per_network,
     neuron_params,
-    output_dir='data',
-    network_prefix='nn'
+    output_dir,
+    network_prefix
 ):
     """
-    Generates multiple networks, saves images, masks, and DataFrames.
+    Batch generates networks and saves outputs into the specified directory structure.
 
     Args:
         num_networks (int): Number of networks to generate.
         network_width (int): Width of each network.
         network_height (int): Height of each network.
-        num_neurons_per_network (int or list): Number of neurons in each network.
+        num_neurons_per_network (int or list): Number of neurons per network.
         neuron_params (dict): Parameters for neuron creation.
-        output_dir (str): Base directory to save outputs.
+        output_dir (str): Base directory for outputs.
         network_prefix (str): Prefix for network IDs.
     """
+    # Ensure output directories exist
     images_dir = os.path.join(output_dir, 'images')
     masks_dir = os.path.join(output_dir, 'masks')
     dataframes_dir = os.path.join(output_dir, 'dataframes')
-
-    # Create directories if they don't exist
     os.makedirs(images_dir, exist_ok=True)
     os.makedirs(masks_dir, exist_ok=True)
     os.makedirs(dataframes_dir, exist_ok=True)
 
-    # Handle num_neurons_per_network input
+    # If num_neurons_per_network is a single integer, create a list
     if isinstance(num_neurons_per_network, int):
         num_neurons_list = [num_neurons_per_network] * num_networks
     elif isinstance(num_neurons_per_network, list):
-        if len(num_neurons_per_network) != num_networks:
-            raise ValueError("Length of num_neurons_per_network list must match num_networks.")
         num_neurons_list = num_neurons_per_network
+        if len(num_neurons_list) != num_networks:
+            raise ValueError("Length of num_neurons_per_network list must match num_networks")
     else:
-        raise TypeError("num_neurons_per_network must be an int or a list of ints.")
+        raise TypeError("num_neurons_per_network must be an int or a list of ints")
+
+    network_params_base = {
+        'width': network_width,
+        'height': network_height,
+    }
 
     for i in range(num_networks):
         network_id = f"{network_prefix}{i}"
-        num_neurons = num_neurons_list[i]
+        print(f"Generating network {network_id}")
 
-        # Create and generate the network
-        network = Network(
-            width=network_width,
-            height=network_height,
-            num_neurons=num_neurons,
-            neuron_params=neuron_params,
-            network_id=network_id
-        )
-        network._seed_neurons()
-        network.grow_network()
+        # Update network_params with the number of neurons for this network
+        network_params = network_params_base.copy()
+        network_params['num_neurons'] = num_neurons_list[i]
 
-        # Generate and save the binary mask
-        network_mask = network.generate_binary_mask()
-
-        # Save network image
-        network_image_filename = f"{network_id}_image.tiff"
-        network_image_path = os.path.join(images_dir, network_image_filename)
-        plt.imsave(network_image_path, network_mask, cmap='gray')
-
-        # Save masks and DataFrame
-        save_masks(network, output_dir=masks_dir)
-        df = network.create_dataframe()
-        save_dataframe(network, df, output_dir=dataframes_dir)
-
-        print(f"Network {network_id} generated and saved.")
+        # Generate the network
+        generate_network(network_id, output_dir, neuron_params, network_params)

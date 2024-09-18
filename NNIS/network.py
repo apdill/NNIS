@@ -1,8 +1,7 @@
-# nn_is/network.py
-
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
+import xarray as xr
 import pandas as pd
 
 from .neuron import Neuron
@@ -34,7 +33,7 @@ class Network:
         self.network_dendrites_mask = np.zeros((self.height, self.width), dtype=np.uint8)
         self.network_id = network_id
 
-    def _seed_neurons(self):
+    def seed_neurons(self):
         """
         Seeds neurons in the network, ensuring that no two somas overlap.
         """
@@ -132,16 +131,40 @@ class Network:
         plt.ylim(0, self.height)
         plt.show()
 
-    def create_dataframe(self):
+    def create_dataset(self):
         """
-        Creates a pandas DataFrame containing masks for the network and individual neurons.
+        Creates an xarray Dataset containing masks for the network and individual neurons,
+        and attaches network parameters as attributes.
 
         Returns:
-            DataFrame: DataFrame with network and neuron masks.
+            xr.Dataset: Dataset with network data and parameters.
         """
-        data = {f'{self.network_id}_network_mask': [self.network_mask]}
-        for neuron in self.neurons:
-            data[neuron.neuron_id] = [neuron.neuron_mask]
+        # Define the coordinates (dimensions)
+        coords = {'y': np.arange(self.height), 'x': np.arange(self.width)}
 
-        df = pd.DataFrame.from_dict(data, orient='columns')
-        return df
+        # Initialize the data variables dictionary
+        data_vars = {}
+
+        # Add the network mask
+        data_vars[f'{self.network_id}_network_mask'] = (('y', 'x'), self.network_mask)
+
+        # Add neuron masks
+        for neuron in self.neurons:
+            data_vars[neuron.neuron_id] = (('y', 'x'), neuron.neuron_mask)
+
+        # Create the xarray Dataset
+        ds = xr.Dataset(data_vars=data_vars, coords=coords)
+
+        # Attach network parameters as attributes
+        # Flatten the network_params dictionary
+        for key, value in self.neuron_params.items():
+            ds.attrs[key] = value
+
+        # Attach other network attributes
+        ds.attrs['network_width'] = self.width
+        ds.attrs['network_height'] = self.height
+        ds.attrs['num_neurons'] = self.num_neurons
+        ds.attrs['network_id'] = self.network_id
+
+        return ds
+
