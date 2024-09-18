@@ -1,17 +1,14 @@
 # NNIS/examples/generate_networks.py
 
-import sys
-sys.path.append(r"C:\Users\absolute-zero\Desktop\NNIS")  # Adjust the path as needed
-
 import numpy as np
 from NNIS.data_processing import batch_generate_networks
 
 def main():
     # Parameters
-    num_networks = 5
+    num_networks = 100
     network_width = 2048
     network_height = 2048
-    num_neurons_per_network = 10  # Or provide a list for varying neurons per network
+    num_neurons_per_network = 20  # Or provide a list for varying neurons per network
 
     # Neuron-specific parameters with Gaussian distribution
     neuron_params = {
@@ -36,7 +33,7 @@ def main():
         num_neurons_per_network=num_neurons_per_network,
         neuron_params=neuron_params,
         output_dir=r"C:\Users\absolute-zero\Desktop\NNIS\examples\example_networks",
-        network_prefix='nn_example'
+        network_prefix='nn_20neurons'
     )
 
 if __name__ == "__main__":
