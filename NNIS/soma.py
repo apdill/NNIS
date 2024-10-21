@@ -1,4 +1,4 @@
-# your_library_name/soma.py
+# nn_is/soma.py
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,12 +13,14 @@ class Soma:
         radius (float): The radius of the soma.
         x_soma (ndarray): X-coordinates of the soma boundary.
         y_soma (ndarray): Y-coordinates of the soma boundary.
+        fill (bool): Determines whether the soma is filled or outlined.
     """
 
-    def __init__(self, position, mean_radius, std_radius):
+    def __init__(self, position, mean_radius, std_radius, fill=True):
         self.position = position
         self.radius = max(np.random.normal(mean_radius, std_radius), 0)
         self.x_soma, self.y_soma = self._generate_soma()
+        self.fill = fill  # Store the fill state
 
     def _generate_soma(self):
         """
@@ -45,17 +47,26 @@ class Soma:
         return x_soma, y_soma
 
     def draw(self, color):
-        """ 
-        Draws the soma using matplotlib.
+        """
+        Draws the soma using matplotlib based on the neuron's fill state.
 
         Args:
-            color: Color used to fill the soma.
+            color: Color used to draw the soma.
         """
-        plt.fill(self.x_soma, self.y_soma, color=color)
+        if self.fill:
+            plt.fill(self.x_soma, self.y_soma, color=color)
+        else:
+            # Ensure the polygon is closed by appending the first point at the end
+            plt.plot(
+                np.append(self.x_soma, self.x_soma[0]),
+                np.append(self.y_soma, self.y_soma[0]),
+                color=color,
+                linewidth=1
+            )
 
-    def create_binary_mask(self, size=(2048, 2048), fill = True):
+    def create_binary_mask(self, size=(2048, 2048)):
         """
-        Creates a binary mask of the soma.
+        Creates a binary mask of the soma based on the neuron's fill state.
 
         Args:
             size (tuple): The size of the mask.
@@ -65,8 +76,10 @@ class Soma:
         """
         mask = np.zeros(size, dtype=np.uint8)
         coordinates = np.array([self.x_soma, self.y_soma]).T.astype(np.int32)
-        if fill == True:
+
+        if self.fill:
             cv2.fillPoly(mask, [coordinates], 1)
         else:
-             cv2.polylines(mask, [coordinates], isClosed=True, color=1, thickness=1)
+            cv2.polylines(mask, [coordinates], isClosed=True, color=1, thickness=1)
+
         return mask

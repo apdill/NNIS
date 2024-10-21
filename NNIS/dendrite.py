@@ -23,6 +23,7 @@ class Dendrite:
         total_length (float): Total length of dendrite.
         initial_thickness (float): Initial thickness of dendrite.
         branch_lengths (ndarray): Lengths of branches at each depth.
+        fill (bool): Determines whether dendrites are filled or outlined.
     """
 
     def __init__(
@@ -37,6 +38,7 @@ class Dendrite:
         curviness=None,
         curviness_magnitude=1.0,
         n_primary_dendrites=4,
+        fill=True
     ):
         self.soma = soma
         self.depth = depth
@@ -49,6 +51,7 @@ class Dendrite:
         self.curviness_magnitude = curviness_magnitude
         self.n_primary_dendrites = n_primary_dendrites
         self.dendrite_list = []
+        self.fill = fill  # Store the fill state
 
         self.total_length = self._scale_total_length()
         self.initial_thickness = self._scale_initial_thickness()
@@ -114,7 +117,7 @@ class Dendrite:
         Scales the initial thickness of the dendrite based on soma radius and total length.
 
         Returns:
-            float: Initial thickness of the dendrite.
+            float: Initial thickness of dendrite.
         """
         base_thickness = 1
         thickness_factor = 0.02
@@ -231,25 +234,9 @@ class Dendrite:
 
         return branch_data, new_branches
 
-    def draw(self, color):
+    def create_dendrite_mask(self, size=(2048, 2048)):
         """
-        Draws the dendritic branches using matplotlib.
-
-        Args:
-            color: Color used to draw the dendrites.
-        """
-        for branch in self.dendrite_list:
-            points = branch['points']
-            thickness_start = branch['thickness_start']
-            thickness_end = branch['thickness_end']
-            thicknesses = np.linspace(thickness_start, thickness_end, len(points[0]))
-
-            for i in range(len(points[0]) - 1):
-                plt.plot(points[0][i : i + 2], points[1][i : i + 2], color=color, linewidth=thicknesses[i])
-
-    def create_dendrite_mask(self, size=(2048, 2048), fill = True):
-        """
-        Creates a binary mask of the dendritic branches.
+        Creates a binary mask of the dendritic branches based on the neuron's fill state.
 
         Args:
             size (tuple): The size of the mask.
@@ -261,31 +248,51 @@ class Dendrite:
 
         for branch in self.dendrite_list:
             points = branch['points']
-            coordinates = np.column_stack((points[0], points[1])).astype(np.int32)
-            
-            if fill == True:        
 
+            if self.fill:
                 thickness_start = branch['thickness_start']
                 thickness_end = branch['thickness_end']
                 thicknesses = np.linspace(thickness_start, thickness_end, len(points[0]))
                 thicknesses = np.clip(np.round(thicknesses), 1, None).astype(int)
-                
-                for i in range(len(coordinates) - 1):
-                    cv2.line(
-                        mask,
-                        tuple(coordinates[i]),
-                        tuple(coordinates[i + 1]),
-                        1,
-                        thickness=thicknesses[i],
-                    )
-            else: 
-                for i in range(len(coordinates) - 1):
-                    cv2.line(
-                        mask,
-                        tuple(coordinates[i]),
-                        tuple(coordinates[i + 1]),
-                        1,
-                        thickness=1,  # Set thickness to 1
-                    )
-        
+            else:
+                thicknesses = np.ones(len(points[0]) - 1, dtype=int)
+
+            coordinates = np.column_stack((points[0], points[1])).astype(np.int32)
+            for i in range(len(coordinates) - 1):
+                if self.fill:
+                    thickness = thicknesses[i]
+                else:
+                    thickness = 1  # Fixed thickness for outlines
+
+                cv2.line(
+                    mask,
+                    tuple(coordinates[i]),
+                    tuple(coordinates[i + 1]),
+                    1,
+                    thickness=thickness,
+                )
+
         return mask
+
+    def draw(self, color):
+        """
+        Draws the dendritic branches using matplotlib based on the neuron's fill state.
+
+        Args:
+            color: Color used to draw the dendrites.
+        """
+        for branch in self.dendrite_list:
+            points = branch['points']
+            if self.fill:
+                thickness_start = branch['thickness_start']
+                thickness_end = branch['thickness_end']
+                linewidths = np.linspace(thickness_start, thickness_end, len(points[0]))
+                for i in range(len(points[0]) - 1):
+                    plt.plot(
+                        points[0][i : i + 2],
+                        points[1][i : i + 2],
+                        color=color,
+                        linewidth=linewidths[i]
+                    )
+            else:
+                plt.plot(points[0], points[1], color=color, linewidth=1)  # 1-pixel thick lines

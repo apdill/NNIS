@@ -20,20 +20,22 @@ class Neuron:
         current_depth (int): Current depth of dendrite growth.
         branch_ends (list): List of current branch ends for further growth.
         is_growing (bool): Indicates whether the neuron is still growing.
+        fill (bool): Determines whether to generate filled masks or outlines.
     """
 
     def __init__(
         self,
         position,
-        depth,
-        mean_soma_radius,
-        std_soma_radius,
-        D,
-        branch_angle,
-        mean_branches,
-        weave_type=None,
-        randomness=0.0,
-        curviness=None,
+        fill=True,  # Added fill parameter
+        depth=5,
+        mean_soma_radius=10,
+        std_soma_radius=2,
+        D=2.0,
+        branch_angle=np.pi / 4,
+        mean_branches=3,
+        weave_type='Gauss',
+        randomness=0.1,
+        curviness='Gauss',
         curviness_magnitude=1.0,
         n_primary_dendrites=4,
         network=None,
@@ -41,8 +43,8 @@ class Neuron:
     ):
         self.network = network
         self.position = position
-        self.soma = Soma(position, mean_soma_radius, std_soma_radius)
-        self.soma_mask = self.soma.create_binary_mask(size=(network.height, network.width))
+        self.fill = fill  # Store fill state
+        self.soma = Soma(position, mean_soma_radius, std_soma_radius, fill=self.fill)
         self.dendrite = Dendrite(
             self.soma,
             depth,
@@ -54,6 +56,7 @@ class Neuron:
             curviness,
             curviness_magnitude,
             n_primary_dendrites,
+            fill=self.fill
         )
         self.dendrite_mask = np.zeros((network.height, network.width), dtype=np.uint8)
         self.neuron_mask = None
@@ -67,10 +70,12 @@ class Neuron:
         Generates the starting points for the primary dendrites and initializes branch ends.
         """
         start_points = self.dendrite._generate_dendrite_start_points()
-        self.branch_ends = [
-            (point, np.arctan2(point[1] - self.position[1], point[0] - self.position[0]))
-            for point in start_points
-        ]
+        # Initialize branch ends with angles pointing outward from the soma
+        for point in start_points:
+            dx = point[0] - self.position[0]
+            dy = point[1] - self.position[1]
+            angle = np.arctan2(dy, dx)
+            self.branch_ends.append((point, angle))
 
     def prepare_next_layer(self):
         """
@@ -118,20 +123,11 @@ class Neuron:
             # Update dendrite list
             self.dendrite.dendrite_list.append(branch_data)
 
-            # Update dendrite mask
-            coordinates = np.column_stack((points[0], points[1])).astype(np.int32)
-            thickness_start = branch_data['thickness_start']
-            thickness_end = branch_data['thickness_end']
-            thicknesses = np.linspace(thickness_start, thickness_end, len(coordinates))
-            thicknesses = np.clip(np.round(thicknesses), 1, None).astype(int)
-            for i in range(len(coordinates) - 1):
-                cv2.line(
-                    self.dendrite_mask,
-                    tuple(coordinates[i]),
-                    tuple(coordinates[i + 1]),
-                    1,
-                    thickness=thicknesses[i],
-                )
+            # Update dendrite mask using the neuron's fill state
+            new_mask = self.dendrite.create_dendrite_mask(size=(self.network.height, self.network.width))
+            self.dendrite_mask = np.logical_or(
+                self.dendrite_mask, new_mask
+            ).astype(np.uint8)
 
             # Update branch ends with new branches from accepted branches
             new_branch_ends.extend(new_branches)
@@ -156,5 +152,10 @@ class Neuron:
         Returns:
             ndarray: Binary mask of the neuron.
         """
+        # Recreate soma and dendrite masks based on the neuron's fill attribute
+        self.soma_mask = self.soma.create_binary_mask(size=(self.network.height, self.network.width))
+        self.dendrite_mask = self.dendrite.create_dendrite_mask(size=(self.network.height, self.network.width))
+
+        # Combine soma and dendrite masks
         self.neuron_mask = np.logical_or(self.soma_mask, self.dendrite_mask).astype(np.uint8)
         return self.neuron_mask

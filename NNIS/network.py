@@ -1,3 +1,5 @@
+# nn_is/network.py
+
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -20,9 +22,10 @@ class Network:
         somas_mask (ndarray): Binary mask of all somas.
         network_dendrites_mask (ndarray): Binary mask of all dendrites.
         network_id (str): Unique identifier for the network.
+        fill (bool): Determines whether to generate filled masks or outlines.
     """
 
-    def __init__(self, width, height, num_neurons, neuron_params, network_id):
+    def __init__(self, width, height, num_neurons, neuron_params, network_id, fill=True):
         self.width = width
         self.height = height
         self.num_neurons = num_neurons
@@ -32,6 +35,7 @@ class Network:
         self.somas_mask = np.zeros((self.height, self.width), dtype=np.uint8)
         self.network_dendrites_mask = np.zeros((self.height, self.width), dtype=np.uint8)
         self.network_id = network_id
+        self.fill = fill  # Store the fill state
 
     def seed_neurons(self):
         """
@@ -46,8 +50,14 @@ class Network:
                 position = (np.random.uniform(0, self.width), np.random.uniform(0, self.height))
                 neuron_id = f"{self.network_id}_neuron_{neuron_index + 1}"
 
-                # Create a new neuron object
-                neuron = Neuron(position, **self.neuron_params, network=self, neuron_id=neuron_id)
+                # Create a new neuron object with the fill attribute
+                neuron = Neuron(
+                    position,
+                    fill=self.fill,
+                    **self.neuron_params,
+                    network=self,
+                    neuron_id=neuron_id
+                )
 
                 # Create a binary mask of the soma
                 new_soma_mask = neuron.soma.create_binary_mask(size=(self.height, self.width))
@@ -81,7 +91,7 @@ class Network:
                 if neuron.is_growing:
                     proposed_branches = neuron.prepare_next_layer()
                     if proposed_branches:
-                        # Directly add branches without collision checks
+                        # Add branches using the neuron's internal fill state
                         neuron.add_branches(proposed_branches)
                         growing = True
                     else:
@@ -146,11 +156,11 @@ class Network:
         data_vars = {}
 
         # Add the network mask
-        data_vars[f'{self.network_id}_network_mask'] = (('y', 'x'), self.network_mask)
+        data_vars[f'{self.network_id}_network_mask'] = (('y', 'x'), self.generate_binary_mask())
 
         # Add neuron masks
         for neuron in self.neurons:
-            data_vars[neuron.neuron_id] = (('y', 'x'), neuron.neuron_mask)
+            data_vars[neuron.neuron_id] = (('y', 'x'), neuron.generate_binary_mask())
 
         # Create the xarray Dataset
         ds = xr.Dataset(data_vars=data_vars, coords=coords)
@@ -165,6 +175,6 @@ class Network:
         ds.attrs['network_height'] = self.height
         ds.attrs['num_neurons'] = self.num_neurons
         ds.attrs['network_id'] = self.network_id
+        ds.attrs['fill'] = self.fill  # Store the fill state
 
         return ds
-
