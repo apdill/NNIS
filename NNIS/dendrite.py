@@ -247,7 +247,7 @@ class Dendrite:
             for i in range(len(points[0]) - 1):
                 plt.plot(points[0][i : i + 2], points[1][i : i + 2], color=color, linewidth=thicknesses[i])
 
-    def create_dendrite_mask(self, size=(2048, 2048)):
+    def create_dendrite_mask(self, size=(2048, 2048), fill = True):
         """
         Creates a binary mask of the dendritic branches.
 
@@ -261,18 +261,31 @@ class Dendrite:
 
         for branch in self.dendrite_list:
             points = branch['points']
-            thickness_start = branch['thickness_start']
-            thickness_end = branch['thickness_end']
-            thicknesses = np.linspace(thickness_start, thickness_end, len(points[0]))
-            thicknesses = np.clip(np.round(thicknesses), 1, None).astype(int)
             coordinates = np.column_stack((points[0], points[1])).astype(np.int32)
-            for i in range(len(coordinates) - 1):
-                cv2.line(
-                    mask,
-                    tuple(coordinates[i]),
-                    tuple(coordinates[i + 1]),
-                    1,
-                    thickness=thicknesses[i],
-                )
+            
+            if fill == True:        
 
+                thickness_start = branch['thickness_start']
+                thickness_end = branch['thickness_end']
+                thicknesses = np.linspace(thickness_start, thickness_end, len(points[0]))
+                thicknesses = np.clip(np.round(thicknesses), 1, None).astype(int)
+                
+                for i in range(len(coordinates) - 1):
+                    cv2.line(
+                        mask,
+                        tuple(coordinates[i]),
+                        tuple(coordinates[i + 1]),
+                        1,
+                        thickness=thicknesses[i],
+                    )
+            else: 
+                for i in range(len(coordinates) - 1):
+                    cv2.line(
+                        mask,
+                        tuple(coordinates[i]),
+                        tuple(coordinates[i + 1]),
+                        1,
+                        thickness=1,  # Set thickness to 1
+                    )
+        
         return mask

@@ -32,7 +32,7 @@ def main():
         network_height=network_height,
         num_neurons_per_network=num_neurons_per_network,
         neuron_params=neuron_params,
-        output_dir=r"C:\Users\absolute-zero\Desktop\NNIS\examples\example_networks",
+        output_dir=r"/home/apd/Projects/NNIS/examples/example_networks",
         network_prefix='example_net_100neurons_'
 
     )

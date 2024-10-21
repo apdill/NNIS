@@ -3,14 +3,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import sys
-sys.path.append(r"C:\Users\absolute-zero\Desktop\NNIS")  # Adjust the path as needed
-
-from NNIS.network import Network
-from NNIS.utils.file_io import save_masks, save_dataframe
+from . import Network
+from NNIS.utils.file_io import save_masks, save_dataset
 
 def main():
-    # Parameters
+    # Parametersgit 
     network_width = 2048
     network_height = 2048
     num_neurons = 60
@@ -46,12 +43,12 @@ def main():
     plt.show()
 
     # Create DataFrame
-    nn0_df = network.create_dataframe()
+    nn0_df = network.create_dataset()
     #print(nn0_df)
 
     # Save masks and DataFrame (uncomment to save)
-    # save_masks(network, output_dir='output')
-    # save_dataframe(network, nn0_df, output_dir='output')
+    #save_masks(network, output_dir='output')
+    #save_dataset(network, nn0_df, output_dir='output')
 
 if __name__ == "__main__":
     main()

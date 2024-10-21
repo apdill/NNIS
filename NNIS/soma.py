@@ -45,7 +45,7 @@ class Soma:
         return x_soma, y_soma
 
     def draw(self, color):
-        """
+        """ 
         Draws the soma using matplotlib.
 
         Args:
@@ -53,7 +53,7 @@ class Soma:
         """
         plt.fill(self.x_soma, self.y_soma, color=color)
 
-    def create_binary_mask(self, size=(2048, 2048)):
+    def create_binary_mask(self, size=(2048, 2048), fill = True):
         """
         Creates a binary mask of the soma.
 
@@ -65,5 +65,8 @@ class Soma:
         """
         mask = np.zeros(size, dtype=np.uint8)
         coordinates = np.array([self.x_soma, self.y_soma]).T.astype(np.int32)
-        cv2.fillPoly(mask, [coordinates], 1)
+        if fill == True:
+            cv2.fillPoly(mask, [coordinates], 1)
+        else:
+             cv2.polylines(mask, [coordinates], isClosed=True, color=1, thickness=1)
         return mask

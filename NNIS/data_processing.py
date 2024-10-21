@@ -8,7 +8,7 @@ from .network import Network
 from .utils.file_io import save_masks, save_dataset
 
 
-def generate_network(network_id, output_base_dir, neuron_params, network_params):
+def generate_network(network_id, neuron_params, network_params, output_base_dir = False,):
     """
     Generates a network with the given ID and saves outputs to the specified directory structure.
 
@@ -32,16 +32,16 @@ def generate_network(network_id, output_base_dir, neuron_params, network_params)
 
     network_ds = network.create_dataset()
     
+    if output_base_dir:
     # Define output directories
-    images_dir = os.path.join(output_base_dir, 'images')
-    masks_dir = os.path.join(output_base_dir, 'masks')
-    dataframes_dir = os.path.join(output_base_dir, 'dataframes')
+        images_dir = os.path.join(output_base_dir, 'images')
+        masks_dir = os.path.join(output_base_dir, 'masks')
+        dataframes_dir = os.path.join(output_base_dir, 'dataframes')
     
-    # Save the Dataset using the updated function
-    save_dataset(network_ds, dataframes_dir=dataframes_dir)
-    
-    # Save masks using the updated function
-    save_masks(network_ds, images_dir=images_dir, masks_dir=masks_dir)
+        save_dataset(network_ds, dataframes_dir=dataframes_dir)
+        save_masks(network_ds, images_dir=images_dir, masks_dir=masks_dir)
+
+    return network
 
 
 def batch_generate_networks(
@@ -64,7 +64,11 @@ def batch_generate_networks(
         neuron_params (dict): Parameters for neuron creation.
         output_dir (str): Base directory for outputs.
         network_prefix (str): Prefix for network IDs.
+        returns an array of network objects
     """
+
+    networks = []
+
     # Ensure output directories exist
     images_dir = os.path.join(output_dir, 'images')
     masks_dir = os.path.join(output_dir, 'masks')
@@ -97,4 +101,4 @@ def batch_generate_networks(
         network_params['num_neurons'] = num_neurons_list[i]
 
         # Generate the network
-        generate_network(network_id, output_dir, neuron_params, network_params)
+        networks.append(generate_network(network_id, output_dir, neuron_params, network_params))

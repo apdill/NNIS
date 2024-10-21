@@ -1,5 +1,7 @@
-numpy
+numpy>=1.21.0
+pandas>=2.2.3
+pytz>=2020.1
 matplotlib
-pandas
 opencv-python
+pillow
 tifffile

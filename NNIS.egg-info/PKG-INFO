@@ -1,9 +1,18 @@
 Metadata-Version: 2.1
 Name: NNIS
 Version: 0.1.0
+Summary: A package for neuronal network generation and instance segmentation
+Home-page: https://github.com/apdill/NNIS
+Author: Aidem Dillon
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
 License-File: LICENSE
-Requires-Dist: numpy
+Requires-Dist: numpy>=1.21.0
+Requires-Dist: pandas>=2.2.3
+Requires-Dist: pytz>=2020.1
 Requires-Dist: matplotlib
-Requires-Dist: pandas
 Requires-Dist: opencv-python
+Requires-Dist: pillow
 Requires-Dist: tifffile

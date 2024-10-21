@@ -1,5 +1,6 @@
 LICENSE
 README.md
+pyproject.toml
 setup.py
 NNIS/__init__.py
 NNIS/data_processing.py

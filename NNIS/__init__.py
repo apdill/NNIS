@@ -1,10 +1,16 @@
-# nn_is/__init__.py
+# NNIS/__init__.py
 
+from .data_processing import generate_network, batch_generate_networks
 from .soma import Soma
 from .dendrite import Dendrite
 from .neuron import Neuron
 from .network import Network
 
-import sys
-sys.path.append(r"C:\Users\absolute-zero\Desktop\NNIS")  # Adjust the path as needed
-
+__all__ = [
+    'generate_network',
+    'batch_generate_networks',
+    'Soma',
+    'Dendrite',
+    'Neuron',
+    'Network'
+]
