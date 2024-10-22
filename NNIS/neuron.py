@@ -20,13 +20,11 @@ class Neuron:
         current_depth (int): Current depth of dendrite growth.
         branch_ends (list): List of current branch ends for further growth.
         is_growing (bool): Indicates whether the neuron is still growing.
-        fill (bool): Determines whether to generate filled masks or outlines.
     """
 
     def __init__(
         self,
         position,
-        fill=True,  # Added fill parameter
         depth=5,
         mean_soma_radius=10,
         std_soma_radius=2,
@@ -43,8 +41,7 @@ class Neuron:
     ):
         self.network = network
         self.position = position
-        self.fill = fill  # Store fill state
-        self.soma = Soma(position, mean_soma_radius, std_soma_radius, fill=self.fill)
+        self.soma = Soma(position, mean_soma_radius, std_soma_radius)
         self.dendrite = Dendrite(
             self.soma,
             depth,
@@ -56,8 +53,8 @@ class Neuron:
             curviness,
             curviness_magnitude,
             n_primary_dendrites,
-            fill=self.fill
         )
+
         self.dendrite_mask = np.zeros((network.height, network.width), dtype=np.uint8)
         self.neuron_mask = None
         self.neuron_id = neuron_id
@@ -135,27 +132,43 @@ class Neuron:
         # Update self.branch_ends for the next layer
         self.branch_ends = new_branch_ends
 
-    def draw(self, color):
+
+    def draw(self, color, mask_type='filled'):
         """
-        Draws the neuron by drawing its soma and dendrites.
+        Draws the neuron using matplotlib.
 
         Args:
             color: Color used to draw the neuron.
+            mask_type (str): 'filled' or 'outline' to specify which mask to use.
         """
-        self.soma.draw(color)
-        self.dendrite.draw(color)
+        if mask_type == 'filled':
+            self.soma.draw(color, fill=True)
+            self.dendrite.draw(color, fill=True)
+        else:
+            self.soma.draw(color, fill=False)
+            self.dendrite.draw(color, fill=False)
 
     def generate_binary_mask(self):
         """
-        Generates a binary mask of the neuron by combining soma and dendrite masks.
+        Generates both filled and outline binary masks of the neuron by combining soma and dendrite masks.
 
         Returns:
-            ndarray: Binary mask of the neuron.
+            dict: A dictionary containing both filled and outline neuron masks.
         """
-        # Recreate soma and dendrite masks based on the neuron's fill attribute
-        self.soma_mask = self.soma.create_binary_mask(size=(self.network.height, self.network.width))
-        self.dendrite_mask = self.dendrite.create_dendrite_mask(size=(self.network.height, self.network.width))
+        # Create soma masks
+        soma_masks = self.soma.create_binary_mask(size=(self.network.height, self.network.width))
 
-        # Combine soma and dendrite masks
-        self.neuron_mask = np.logical_or(self.soma_mask, self.dendrite_mask).astype(np.uint8)
-        return self.neuron_mask
+        # Create dendrite masks
+        dendrite_masks = self.dendrite.create_dendrite_mask(size=(self.network.height, self.network.width))
+
+        # Combine masks for both filled and outline versions
+        neuron_mask_filled = np.logical_or(soma_masks['filled'], dendrite_masks['filled']).astype(np.uint8)
+        neuron_mask_outline = np.logical_or(soma_masks['outline'], dendrite_masks['outline']).astype(np.uint8)
+
+        # Store the masks in a dictionary
+        self.masks = {
+            'filled': neuron_mask_filled,
+            'outline': neuron_mask_outline
+        }
+
+        return self.masks

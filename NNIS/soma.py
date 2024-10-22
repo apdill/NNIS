@@ -16,11 +16,11 @@ class Soma:
         fill (bool): Determines whether the soma is filled or outlined.
     """
 
-    def __init__(self, position, mean_radius, std_radius, fill=True):
+    def __init__(self, position, mean_radius, std_radius):
         self.position = position
         self.radius = max(np.random.normal(mean_radius, std_radius), 0)
         self.x_soma, self.y_soma = self._generate_soma()
-        self.fill = fill  # Store the fill state
+        self.masks = None
 
     def _generate_soma(self):
         """
@@ -46,14 +46,14 @@ class Soma:
 
         return x_soma, y_soma
 
-    def draw(self, color):
+    def draw(self, color, fill):
         """
         Draws the soma using matplotlib based on the neuron's fill state.
 
         Args:
             color: Color used to draw the soma.
         """
-        if self.fill:
+        if fill == True:
             plt.fill(self.x_soma, self.y_soma, color=color)
         else:
             # Ensure the polygon is closed by appending the first point at the end
@@ -66,20 +66,29 @@ class Soma:
 
     def create_binary_mask(self, size=(2048, 2048)):
         """
-        Creates a binary mask of the soma based on the neuron's fill state.
+        Creates both filled and outline binary masks of the soma.
 
         Args:
             size (tuple): The size of the mask.
 
         Returns:
-            ndarray: A binary mask of the soma.
+            dict: A dictionary containing both filled and outline masks.
         """
-        mask = np.zeros(size, dtype=np.uint8)
+        mask_filled = np.zeros(size, dtype=np.uint8)
+        mask_outline = np.zeros(size, dtype=np.uint8)
         coordinates = np.array([self.x_soma, self.y_soma]).T.astype(np.int32)
 
-        if self.fill:
-            cv2.fillPoly(mask, [coordinates], 1)
-        else:
-            cv2.polylines(mask, [coordinates], isClosed=True, color=1, thickness=1)
+        # Create filled mask
+        cv2.fillPoly(mask_filled, [coordinates], 1)
 
-        return mask
+        # Create outline mask
+        cv2.polylines(mask_outline, [coordinates], isClosed=True, color=1, thickness=1)
+
+        # Store the masks in a dictionary
+        masks = {
+            'filled': mask_filled,
+            'outline': mask_outline
+        }
+        self.masks = masks
+
+        return masks

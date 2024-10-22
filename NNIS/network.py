@@ -25,7 +25,7 @@ class Network:
         fill (bool): Determines whether to generate filled masks or outlines.
     """
 
-    def __init__(self, width, height, num_neurons, neuron_params, network_id, fill=True):
+    def __init__(self, width, height, num_neurons, neuron_params, network_id):
         self.width = width
         self.height = height
         self.num_neurons = num_neurons
@@ -35,7 +35,6 @@ class Network:
         self.somas_mask = np.zeros((self.height, self.width), dtype=np.uint8)
         self.network_dendrites_mask = np.zeros((self.height, self.width), dtype=np.uint8)
         self.network_id = network_id
-        self.fill = fill  # Store the fill state
 
     def seed_neurons(self):
         """
@@ -53,7 +52,6 @@ class Network:
                 # Create a new neuron object with the fill attribute
                 neuron = Neuron(
                     position,
-                    fill=self.fill,
                     **self.neuron_params,
                     network=self,
                     neuron_id=neuron_id
@@ -111,20 +109,34 @@ class Network:
 
     def generate_binary_mask(self):
         """
-        Generates a binary mask of the entire network by combining neuron masks.
+        Generates both filled and outline binary masks of the entire network by combining neuron masks.
 
         Returns:
-            ndarray: Binary mask of the network.
+            dict: A dictionary containing both filled and outline network masks.
         """
-        self.network_mask = np.zeros((self.height, self.width), dtype=np.uint8)
-        for neuron in self.neurons:
-            neuron_mask = neuron.generate_binary_mask()
-            self.network_mask = np.logical_or(self.network_mask, neuron_mask).astype(np.uint8)
-        return self.network_mask
+        network_mask_filled = np.zeros((self.height, self.width), dtype=np.uint8)
+        network_mask_outline = np.zeros((self.height, self.width), dtype=np.uint8)
 
-    def draw(self):
+        for neuron in self.neurons:
+            neuron_masks = neuron.generate_binary_mask()
+
+            network_mask_filled = np.logical_or(network_mask_filled, neuron_masks['filled']).astype(np.uint8)
+            network_mask_outline = np.logical_or(network_mask_outline, neuron_masks['outline']).astype(np.uint8)
+
+        # Store the masks in a dictionary
+        self.masks = {
+            'filled': network_mask_filled,
+            'outline': network_mask_outline
+        }
+
+        return self.masks
+
+    def draw(self, mask_type='filled'):
         """
         Draws the network of neurons using matplotlib.
+
+        Args:
+            mask_type (str): 'filled' or 'outline' to specify which mask to use.
         """
         plt.figure(figsize=(12, 12))
         plt.gca().set_xticks([])
@@ -134,7 +146,7 @@ class Network:
 
         for neuron in self.neurons:
             color = np.random.rand(3)
-            neuron.draw(color=color)
+            neuron.draw(color=color, mask_type=mask_type)
 
         plt.axis('equal')
         plt.xlim(0, self.width)
@@ -143,7 +155,7 @@ class Network:
 
     def create_dataset(self):
         """
-        Creates an xarray Dataset containing masks for the network and individual neurons,
+        Creates an xarray Dataset containing both filled and outline masks for the network and individual neurons,
         and attaches network parameters as attributes.
 
         Returns:
@@ -155,12 +167,18 @@ class Network:
         # Initialize the data variables dictionary
         data_vars = {}
 
-        # Add the network mask
-        data_vars[f'{self.network_id}_network_mask'] = (('y', 'x'), self.generate_binary_mask())
+        # Generate masks
+        network_masks = self.generate_binary_mask()
+
+        # Add the network masks
+        data_vars[f'{self.network_id}_network_mask_filled'] = (('y', 'x'), network_masks['filled'])
+        data_vars[f'{self.network_id}_network_mask_outline'] = (('y', 'x'), network_masks['outline'])
 
         # Add neuron masks
         for neuron in self.neurons:
-            data_vars[neuron.neuron_id] = (('y', 'x'), neuron.generate_binary_mask())
+            neuron_masks = neuron.masks
+            data_vars[f'{neuron.neuron_id}_filled'] = (('y', 'x'), neuron_masks['filled'])
+            data_vars[f'{neuron.neuron_id}_outline'] = (('y', 'x'), neuron_masks['outline'])
 
         # Create the xarray Dataset
         ds = xr.Dataset(data_vars=data_vars, coords=coords)
@@ -175,6 +193,5 @@ class Network:
         ds.attrs['network_height'] = self.height
         ds.attrs['num_neurons'] = self.num_neurons
         ds.attrs['network_id'] = self.network_id
-        ds.attrs['fill'] = self.fill  # Store the fill state
 
         return ds

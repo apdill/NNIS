@@ -38,7 +38,6 @@ class Dendrite:
         curviness=None,
         curviness_magnitude=1.0,
         n_primary_dendrites=4,
-        fill=True
     ):
         self.soma = soma
         self.depth = depth
@@ -51,7 +50,7 @@ class Dendrite:
         self.curviness_magnitude = curviness_magnitude
         self.n_primary_dendrites = n_primary_dendrites
         self.dendrite_list = []
-        self.fill = fill  # Store the fill state
+        self.masks = None  # Store the fill state
 
         self.total_length = self._scale_total_length()
         self.initial_thickness = self._scale_initial_thickness()
@@ -235,46 +234,62 @@ class Dendrite:
         return branch_data, new_branches
 
     def create_dendrite_mask(self, size=(2048, 2048)):
-        """
-        Creates a binary mask of the dendritic branches based on the neuron's fill state.
+            """
+            Creates both filled and outline binary masks of the dendritic branches.
 
-        Args:
-            size (tuple): The size of the mask.
+            Args:
+                size (tuple): The size of the mask.
 
-        Returns:
-            ndarray: A binary mask of the dendrites.
-        """
-        mask = np.zeros(size, dtype=np.uint8)
+            Returns:
+                dict: A dictionary containing both filled and outline masks.
+            """
+            mask_filled = np.zeros(size, dtype=np.uint8)
+            mask_outline = np.zeros(size, dtype=np.uint8)
 
-        for branch in self.dendrite_list:
-            points = branch['points']
+            for branch in self.dendrite_list:
+                points = branch['points']
 
-            if self.fill:
+                # Calculate thicknesses for filled mask
                 thickness_start = branch['thickness_start']
                 thickness_end = branch['thickness_end']
                 thicknesses = np.linspace(thickness_start, thickness_end, len(points[0]))
                 thicknesses = np.clip(np.round(thicknesses), 1, None).astype(int)
-            else:
-                thicknesses = np.ones(len(points[0]) - 1, dtype=int)
 
-            coordinates = np.column_stack((points[0], points[1])).astype(np.int32)
-            for i in range(len(coordinates) - 1):
-                if self.fill:
+                # Coordinates of the branch
+                coordinates = np.column_stack((points[0], points[1])).astype(np.int32)
+
+                # Draw filled dendrites
+                for i in range(len(coordinates) - 1):
                     thickness = thicknesses[i]
-                else:
-                    thickness = 1  # Fixed thickness for outlines
+                    cv2.line(
+                        mask_filled,
+                        tuple(coordinates[i]),
+                        tuple(coordinates[i + 1]),
+                        1,
+                        thickness=thickness,
+                    )
 
-                cv2.line(
-                    mask,
-                    tuple(coordinates[i]),
-                    tuple(coordinates[i + 1]),
-                    1,
-                    thickness=thickness,
-                )
+                # Draw outline dendrites (1-pixel thick lines)
+                for i in range(len(coordinates) - 1):
+                    cv2.line(
+                        mask_outline,
+                        tuple(coordinates[i]),
+                        tuple(coordinates[i + 1]),
+                        1,
+                        thickness=1,
+                    )
 
-        return mask
+            # Store the masks in a dictionary
+            masks = {
+                'filled': mask_filled,
+                'outline': mask_outline
+            }
 
-    def draw(self, color):
+            self.masks = masks
+
+            return masks
+
+    def draw(self, color, fill):
         """
         Draws the dendritic branches using matplotlib based on the neuron's fill state.
 
@@ -283,7 +298,7 @@ class Dendrite:
         """
         for branch in self.dendrite_list:
             points = branch['points']
-            if self.fill:
+            if fill == True:
                 thickness_start = branch['thickness_start']
                 thickness_end = branch['thickness_end']
                 linewidths = np.linspace(thickness_start, thickness_end, len(points[0]))
