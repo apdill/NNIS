@@ -22,7 +22,6 @@ class Network:
         somas_mask (ndarray): Binary mask of all somas.
         network_dendrites_mask (ndarray): Binary mask of all dendrites.
         network_id (str): Unique identifier for the network.
-        fill (bool): Determines whether to generate filled masks or outlines.
     """
 
     def __init__(self, width, height, num_neurons, neuron_params, network_id):
