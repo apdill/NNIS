@@ -104,12 +104,6 @@ class Neuron:
         return proposed_branches
 
     def add_branches(self, accepted_branches):
-        """
-        Add the accepted branches to the dendrite list, update the dendrite mask, and update branch ends.
-
-        Args:
-            accepted_branches (list): List of branches to add.
-        """
         new_branch_ends = []
 
         for branch_info in accepted_branches:
@@ -120,17 +114,29 @@ class Neuron:
             # Update dendrite list
             self.dendrite.dendrite_list.append(branch_data)
 
-            # Update dendrite mask using the neuron's fill state
-            new_mask = self.dendrite.create_dendrite_mask(size=(self.network.height, self.network.width))
-            self.dendrite_mask = np.logical_or(
-                self.dendrite_mask, new_mask
-            ).astype(np.uint8)
+            # Draw only the new branch onto the existing mask
+            coordinates = np.column_stack((points[0], points[1])).astype(np.int32)
+            thicknesses = np.linspace(
+                branch_data['thickness_start'],
+                branch_data['thickness_end'],
+                len(coordinates)
+            ).astype(int)
 
-            # Update branch ends with new branches from accepted branches
+            for i in range(len(coordinates) - 1):
+                cv2.line(
+                    self.dendrite_mask,
+                    tuple(coordinates[i]),
+                    tuple(coordinates[i + 1]),
+                    1,
+                    thickness=int(thicknesses[i])
+                )
+
+            # Update branch ends
             new_branch_ends.extend(new_branches)
 
         # Update self.branch_ends for the next layer
         self.branch_ends = new_branch_ends
+
 
 
     def draw(self, color, mask_type='filled'):
@@ -155,17 +161,17 @@ class Neuron:
         Returns:
             dict: A dictionary containing both filled and outline neuron masks.
         """
-        # Create soma masks
+        # Generate soma masks
         soma_masks = self.soma.create_binary_mask(size=(self.network.height, self.network.width))
 
-        # Create dendrite masks
+        # Generate dendrite masks
         dendrite_masks = self.dendrite.create_dendrite_mask(size=(self.network.height, self.network.width))
 
         # Combine masks for both filled and outline versions
         neuron_mask_filled = np.logical_or(soma_masks['filled'], dendrite_masks['filled']).astype(np.uint8)
         neuron_mask_outline = np.logical_or(soma_masks['outline'], dendrite_masks['outline']).astype(np.uint8)
 
-        # Store the masks in a dictionary
+        # Store the masks
         self.masks = {
             'filled': neuron_mask_filled,
             'outline': neuron_mask_outline

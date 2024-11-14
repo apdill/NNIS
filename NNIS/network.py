@@ -57,7 +57,8 @@ class Network:
                 )
 
                 # Create a binary mask of the soma
-                new_soma_mask = neuron.soma.create_binary_mask(size=(self.height, self.width))
+                soma_masks = neuron.soma.create_binary_mask(size=(self.height, self.width))
+                new_soma_mask = soma_masks['filled'] 
 
                 # Check if there is an overlap with any existing somas
                 overlap = np.any(np.logical_and(self.somas_mask, new_soma_mask))
@@ -97,6 +98,10 @@ class Network:
             # Update the network dendrite mask with all branches
             self.network_dendrites_mask = np.zeros((self.height, self.width), dtype=np.uint8)
             for neuron in self.neurons:
+                # Ensure dendrite_mask is updated
+                dendrite_masks = neuron.dendrite.create_dendrite_mask(size=(self.height, self.width))
+                neuron.dendrite_mask = dendrite_masks['filled']  # or 'outline', as needed
+
                 self.network_dendrites_mask = np.logical_or(
                     self.network_dendrites_mask, neuron.dendrite_mask
                 ).astype(np.uint8)

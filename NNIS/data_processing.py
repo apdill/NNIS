@@ -8,7 +8,7 @@ from .network import Network
 from .utils.file_io import save_masks, save_dataset
 
 
-def generate_network(network_id, neuron_params, network_params, output_base_dir = False,):
+def generate_network(network_params, neuron_params, network_id = None, output_base_dir = False):
     """
     Generates a network with the given ID and saves outputs to the specified directory structure.
 
@@ -27,13 +27,12 @@ def generate_network(network_id, neuron_params, network_params, output_base_dir 
     network.seed_neurons()
     network.grow_network()
 
-    # Generate the binary mask
-    network_mask = network.generate_binary_mask()
-
-    network_ds = network.create_dataset()
     
     if output_base_dir:
-    # Define output directories
+        
+        network_mask = network.generate_binary_mask()
+        network_ds = network.create_dataset()
+        
         images_dir = os.path.join(output_base_dir, 'images')
         masks_dir = os.path.join(output_base_dir, 'masks')
         dataframes_dir = os.path.join(output_base_dir, 'dataframes')
